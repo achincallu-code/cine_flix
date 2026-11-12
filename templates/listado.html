@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Reservaciones | CineFlix{% endblock %}
+{% block content %}
+<section class="list-hero">
+    <div><p class="eyebrow">PANEL DE CONTROL</p><h1>Tus reservaciones<span>.</span></h1><p>Consulta y administra los registros guardados en CineFlix.</p></div>
+    <a class="btn-primary compact" href="{{ url_for('reserva') }}">＋ Nueva reservación</a>
+</section>
+
+<div class="stats-row">
+    <div class="stat-card"><span class="stat-icon">▤</span><div><small>REGISTROS TOTALES</small><strong>{{ total }}</strong></div></div>
+    <div class="stat-card"><span class="stat-icon red">◷</span><div><small>RESULTADOS MOSTRADOS</small><strong>{{ reservaciones|length }}</strong></div></div>
+</div>
+
+<form class="search-bar" method="GET" action="{{ url_for('listado') }}">
+    <span>⌕</span><input type="search" name="q" value="{{ q }}" placeholder="Buscar por cliente, correo o película...">
+    <button type="submit">Buscar</button>
+    {% if q %}<a href="{{ url_for('listado') }}" class="clear-search">Limpiar</a>{% endif %}
+</form>
+
+<section class="panel table-panel">
+    <div class="table-heading"><div><p class="eyebrow">BASE DE DATOS</p><h2>Reservaciones registradas</h2></div><span class="record-count">{{ reservaciones|length }} registros</span></div>
+    {% if reservaciones %}
+    <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>CLIENTE</th><th>PELÍCULA</th><th>FECHA / HORA</th><th>BOLETOS</th><th>SALA</th><th>ACCIÓN</th></tr></thead>
+        <tbody>
+        {% for reserva in reservaciones %}
+        <tr>
+            <td><span class="id-chip">#{{ reserva.id }}</span></td>
+            <td><strong>{{ reserva.nombre }}</strong><small class="sub-cell">{{ reserva.correo }}</small></td>
+            <td>{{ reserva.pelicula }}</td>
+            <td>{{ reserva.fecha }}<small class="sub-cell">{{ reserva.horario }}</small></td>
+            <td><span class="ticket-count">{{ reserva.boletos }}</span></td>
+            <td><span class="room-tag">{{ reserva.sala }}</span></td>
+            <td><form method="POST" action="{{ url_for('cancelar', reserva_id=reserva.id) }}" class="delete-form" data-confirm="¿Seguro que deseas cancelar esta reservación?"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn-delete" type="submit" aria-label="Cancelar reservación {{ reserva.id }}">Cancelar</button></form></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">▤</div><h3>{% if q %}No encontramos resultados{% else %}Todavía no hay reservaciones{% endif %}</h3><p>{% if q %}Prueba con otro nombre o película.{% else %}Cuando registres una reservación aparecerá aquí.{% endif %}</p><a href="{{ url_for('reserva') }}" class="btn-primary compact">Crear reservación</a></div>
+    {% endif %}
+</section>
+{% endblock %}

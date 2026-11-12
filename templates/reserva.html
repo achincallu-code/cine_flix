@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Reservar boletos | CineFlix{% endblock %}
+{% block content %}
+<section class="hero">
+    <div class="hero-copy">
+        <p class="eyebrow"><span class="live-dot"></span> TU CINE, TU EXPERIENCIA</p>
+        <h1>Una buena historia<br><span>merece pantalla grande.</span></h1>
+        <p class="hero-description">Elige tu película, prepara tus boletos y disfruta la función.</p>
+        <div class="hero-pills"><span>● Reservación rápida</span><span>● Confirmación inmediata</span></div>
+    </div>
+    <div class="ticket-art" aria-hidden="true">
+        <div class="ticket-glow"></div>
+        <div class="ticket">
+            <div class="ticket-top"><span>CINEFLIX</span><span>ADMIT ONE</span></div>
+            <div class="ticket-symbol">▶</div>
+            <div class="ticket-bottom"><span>YOUR MOVIE NIGHT</span><strong>CF-2026</strong></div>
+        </div>
+    </div>
+</section>
+
+<section class="now-playing" aria-labelledby="now-playing-title">
+    <div class="now-playing-heading">
+        <div>
+            <p class="eyebrow">EN CINES</p>
+            <h2 id="now-playing-title">Estrenos recientes</h2>
+        </div>
+        <div class="movie-carousel-actions">
+            <div class="carousel-controls" aria-label="Controles de la cartelera">
+                <button class="carousel-arrow" type="button" data-carousel-direction="-1" aria-label="Películas anteriores">‹</button>
+                <button class="carousel-arrow" type="button" data-carousel-direction="1" aria-label="Películas siguientes">›</button>
+            </div>
+            <a href="https://www.sensacine.com.mx/peliculas/en-cartelera/estrenos/" target="_blank" rel="noopener noreferrer">Ver cartelera <span>↗</span></a>
+        </div>
+    </div>
+    <div class="movie-carousel">
+        <div class="movie-shelf" tabindex="0" aria-label="Películas en cartelera">
+            {% for pelicula in cartelera %}
+            <button class="movie-card" type="button" data-movie="{{ pelicula.titulo }}" aria-pressed="false">
+                <img src="{{ pelicula.poster }}" alt="Póster de {{ pelicula.titulo }}" loading="lazy">
+                <span class="movie-card-title">{{ pelicula.titulo }}</span>
+                <span class="movie-card-action">Elegir película</span>
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+    <p class="poster-credit">Cartelera y estrenos: <a href="https://www.sensacine.com.mx/peliculas/en-cartelera/estrenos/" target="_blank" rel="noopener noreferrer">SensaCine México</a>. Pósters de <a href="https://es.wikipedia.org/wiki/R%C3%A1pidos_y_furiosos" target="_blank" rel="noopener noreferrer">Rápidos y furiosos</a>, <a href="https://es.wikipedia.org/wiki/Interestelar" target="_blank" rel="noopener noreferrer">Interestelar</a> y <a href="https://es.wikipedia.org/wiki/The_Purge" target="_blank" rel="noopener noreferrer">La Purga</a>: Wikipedia.</p>
+</section>
+
+<section class="section-heading">
+    <div><p class="eyebrow">RESERVA EN LÍNEA</p><h2>Reserva tus boletos</h2></div>
+    <span class="step-label">01 <i>/</i> 02</span>
+</section>
+
+{% if errores %}
+<div class="alert error"><strong>Revisa los siguientes datos:</strong><ul>{% for error in errores %}<li>{{ error }}</li>{% endfor %}</ul></div>
+{% endif %}
+
+<div class="booking-layout">
+    <form class="panel booking-form" method="POST" action="{{ url_for('reserva') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <div class="form-title"><span class="form-icon">✦</span><div><h3>Datos de tu reservación</h3><p>Completa todos los campos obligatorios.</p></div></div>
+
+        <div class="form-grid">
+            <div class="field full">
+                <label for="nombre">Nombre del cliente</label>
+                <input id="nombre" type="text" name="nombre" maxlength="80" placeholder="¿A nombre de quién?" value="{{ form_data.get('nombre', '') }}" required>
+            </div>
+            <div class="field full">
+                <label for="correo">Correo electrónico</label>
+                <input id="correo" type="email" name="correo" maxlength="120" placeholder="nombre@correo.com" value="{{ form_data.get('correo', '') }}" required>
+            </div>
+            <div class="field full">
+                <label for="pelicula">Película</label>
+                <select id="pelicula" name="pelicula" required>
+                    <option value="">Selecciona una película</option>
+                    {% for pelicula in peliculas %}<option value="{{ pelicula }}" {% if form_data.get('pelicula') == pelicula %}selected{% endif %}>{{ pelicula }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label for="fecha">Fecha de función</label>
+                <input id="fecha" type="date" name="fecha" min="{{ hoy }}" value="{{ form_data.get('fecha', '') }}" required>
+            </div>
+            <div class="field">
+                <label for="horario">Horario</label>
+                <select id="horario" name="horario" required>
+                    <option value="">Selecciona horario</option>
+                    {% for horario in horarios %}<option value="{{ horario }}" {% if form_data.get('horario') == horario %}selected{% endif %}>{{ horario }} horas</option>{% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label for="boletos">Cantidad de boletos</label>
+                <input id="boletos" type="number" name="boletos" min="1" max="10" value="{{ form_data.get('boletos', '1') }}" required>
+                <small>De 1 a 10 boletos</small>
+            </div>
+            <div class="field">
+                <label for="sala">Tipo de sala</label>
+                <select id="sala" name="sala" required>
+                    <option value="">Selecciona sala</option>
+                    {% for sala in salas %}<option value="{{ sala }}" {% if form_data.get('sala') == sala %}selected{% endif %}>{{ sala }}</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+        <button class="btn-primary" type="submit">Guardar reservación <span>→</span></button>
+        <p class="secure-note">▣ Tus datos se guardan localmente en la base de datos SQLite.</p>
+    </form>
+
+    <aside class="side-card">
+        <div class="side-card-top"><span class="mini-badge">CINEFLIX ORIGINAL</span><span class="rating">★ 4.9</span></div>
+        <div class="side-visual"><div class="screen-lines"></div><span class="play-button">▶</span><span class="visual-caption">MOVIE NIGHT</span></div>
+        <div class="side-content"><p class="eyebrow">LA EXPERIENCIA COMIENZA AQUÍ</p><h3>Prepara las palomitas.</h3><p>Elige tu función favorita y asegura tu lugar para disfrutar el momento.</p><div class="side-divider"></div><div class="side-feature"><span>01</span> Selecciona tu película</div><div class="side-feature"><span>02</span> Confirma tus datos</div><div class="side-feature"><span>03</span> ¡Disfruta la función!</div></div>
+    </aside>
+</div>
+{% endblock %}

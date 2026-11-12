@@ -1,0 +1,16 @@
+CINEFLIX — GUÍA RÁPIDA
+
+1. Descomprime CineFlix_Netflix_Pro.zip.
+2. Abre la carpeta CineFlix_Netflix_Pro en Visual Studio Code.
+3. Abre Terminal > Nueva terminal.
+4. Ejecuta: py -m venv .venv
+5. Ejecuta: .\.venv\Scripts\Activate.ps1
+6. Ejecuta: python -m pip install -r requirements.txt
+7. Ejecuta: python app.py
+8. Abre http://127.0.0.1:5002/
+
+IMPORTANTE:
+- No borres cineflix.db mientras quieras conservar las reservaciones.
+- El archivo cineflix.db se crea al iniciar la aplicación.
+- Este ZIP incluye el campo correo como reto adicional propuesto en el PDF.
+- El proyecto no realiza pagos ni reserva asientos reales.
