@@ -5,6 +5,9 @@ Aplicación web didáctica para registrar, consultar y cancelar reservaciones de
 ## Funciones
 
 - Formulario de reservación con nombre, correo, película, fecha, horario, boletos y sala.
+- Búsqueda por película y género, lista de favoritas guardada en el navegador y detalles con acceso a tráilers.
+- Selección de asientos por función con disponibilidad compartida y bloqueo de lugares ya reservados.
+- Boleto imprimible con folio único y asientos asignados.
 - Validación de datos en el servidor.
 - Persistencia en PostgreSQL (Render + Neon) o SQLite para desarrollo local.
 - Consulta de reservaciones y búsqueda por cliente, correo o película.
@@ -86,6 +89,8 @@ CineFlix/
 │   └── listado.html
 └── static/
     ├── estilos.css
+    ├── cartelera.css
+    ├── experiencia.css
     └── app.js
 ```
 
@@ -97,7 +102,10 @@ CineFlix/
 4. Busca por nombre, correo o película.
 5. Intenta enviar un formulario con datos incorrectos.
 6. Cancela una reservación y comprueba que desaparezca.
-7. Detén el servidor y vuelve a iniciarlo; los registros deben permanecer.
+7. Elige película, fecha, horario y sala; verifica que el mapa cargue y selecciona un asiento por boleto.
+8. Confirma la reserva, imprime el boleto y comprueba su folio en `/reservaciones`.
+9. Abre otra sesión y confirma que los asientos ocupados ya no se puedan seleccionar.
+10. Detén el servidor y vuelve a iniciarlo; las reservaciones deben permanecer.
 
 ## Conceptos importantes para explicar
 

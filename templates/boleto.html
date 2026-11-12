@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Boleto {{ reservacion.folio }} | CineFlix{% endblock %}
+{% block content %}
+<section class="ticket-page">
+    <div class="ticket-heading">
+        <p class="eyebrow">RESERVACIÓN CONFIRMADA</p>
+        <h1>Tu noche de cine<br><span>ya tiene lugar.</span></h1>
+        <p>Guarda el folio o imprime tu boleto para tener los datos de la función a la mano.</p>
+    </div>
+    <article class="ticket-card">
+        <div class="ticket-main">
+            <img class="ticket-poster" src="{{ pelicula.poster }}" alt="Póster de {{ reservacion.pelicula }}">
+            <div class="ticket-info">
+                <p class="eyebrow">CINEFLIX · {{ reservacion.sala }}</p>
+                <h2>{{ reservacion.pelicula }}</h2>
+                <p class="ticket-customer">{{ reservacion.nombre }}</p>
+                <div class="ticket-meta">
+                    <div><span>FECHA</span><strong>{{ reservacion.fecha }}</strong></div>
+                    <div><span>FUNCIÓN</span><strong>{{ reservacion.horario }}</strong></div>
+                    <div><span>BOLETOS</span><strong>{{ reservacion.boletos }}</strong></div>
+                    <div><span>ASIENTOS</span><strong>{{ reservacion.asientos|map(attribute='asiento')|join(', ') }}</strong></div>
+                </div>
+            </div>
+        </div>
+        <div class="ticket-stub">
+            <span>FOLIO DE RESERVACIÓN</span>
+            <strong>{{ reservacion.folio }}</strong>
+            <button type="button" class="btn-primary compact print-ticket" onclick="window.print()">Imprimir boleto</button>
+        </div>
+    </article>
+    <div class="ticket-links">
+        <a class="btn-secondary" href="{{ url_for('reserva') }}">Hacer otra reservación</a>
+        <a class="text-link" href="{{ url_for('listado') }}">Ver reservaciones</a>
+    </div>
+</section>
+{% endblock %}
