@@ -1,19 +1,31 @@
 import os
 import secrets
 from datetime import date
+from functools import wraps
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from flask import (
-    Flask, abort, flash, jsonify, redirect, render_template,
+    Flask, abort, flash, g, jsonify, redirect, render_template,
     request, session, url_for
 )
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import CheckConstraint, UniqueConstraint, inspect, or_, text
 from sqlalchemy.exc import IntegrityError
+from werkzeug.security import check_password_hash, generate_password_hash
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE = BASE_DIR / "cineflix.db"
 db = SQLAlchemy()
+
+
+class Usuario(db.Model):
+    __tablename__ = "usuarios"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(80), nullable=False)
+    correo = db.Column(db.String(120), nullable=False, unique=True)
+    password_hash = db.Column(db.String(256), nullable=False)
 
 
 class Reservacion(db.Model):
@@ -31,6 +43,12 @@ class Reservacion(db.Model):
     boletos = db.Column(db.Integer, nullable=False)
     sala = db.Column(db.String(20), nullable=False)
     folio = db.Column(db.String(12), nullable=False, unique=True)
+    usuario_id = db.Column(
+        db.Integer,
+        db.ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     asientos = db.relationship(
         "AsientoReservado",
         cascade="all, delete-orphan",
@@ -184,6 +202,9 @@ def create_app(test_config=None):
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SQLALCHEMY_ENGINE_OPTIONS={"pool_pre_ping": True},
         MAX_CONTENT_LENGTH=2 * 1024 * 1024,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")),
     )
 
     if test_config:
@@ -198,6 +219,32 @@ def create_app(test_config=None):
         return session["_csrf_token"]
 
     app.jinja_env.globals["csrf_token"] = csrf_token
+
+    @app.before_request
+    def load_current_user():
+        usuario_id = session.get("usuario_id")
+        g.current_user = db.session.get(Usuario, usuario_id) if usuario_id else None
+
+    @app.context_processor
+    def inject_current_user():
+        return {"current_user": getattr(g, "current_user", None)}
+
+    def login_required(view):
+        @wraps(view)
+        def wrapped_view(*args, **kwargs):
+            if g.current_user is None:
+                siguiente = request.full_path.rstrip("?") if request.method == "GET" else url_for("reserva")
+                return redirect(url_for("login", next=siguiente))
+            return view(*args, **kwargs)
+        return wrapped_view
+
+    def safe_next_url(target):
+        if not target or "\\" in target:
+            return None
+        parsed = urlsplit(target)
+        if parsed.scheme or parsed.netloc or not target.startswith("/") or target.startswith("//"):
+            return None
+        return target
 
     @app.before_request
     def protect_post_requests():
@@ -232,7 +279,107 @@ def create_app(test_config=None):
             "asientos_api_url": url_for("asientos_funcion"),
         }
 
+    def contexto_autenticacion(modo, errores=None, form_data=None):
+        return {
+            "modo": modo,
+            "errores": errores or [],
+            "form_data": form_data or {},
+            "siguiente": safe_next_url(request.values.get("next")),
+            "peliculas_destacadas": cartelera_para_vista()[:3],
+        }
+
+    @app.route("/login", methods=["GET", "POST"])
+    def login():
+        siguiente = safe_next_url(request.values.get("next"))
+        if g.current_user is not None:
+            return redirect(siguiente or url_for("reserva"))
+
+        errores = []
+        form_data = {}
+        if request.method == "POST":
+            form_data = request.form.to_dict()
+            correo = form_data.get("correo", "").strip().casefold()
+            password = form_data.get("password", "")
+            usuario = db.session.execute(
+                db.select(Usuario).where(Usuario.correo == correo)
+            ).scalar_one_or_none()
+            if usuario is None or not check_password_hash(usuario.password_hash, password):
+                errores.append("El correo o la contraseña no son correctos.")
+            else:
+                session.clear()
+                session["usuario_id"] = usuario.id
+                flash(f"Qué gusto verte, {usuario.nombre}.", "success")
+                return redirect(siguiente or url_for("reserva"))
+
+        return render_template(
+            "autenticacion.html",
+            **contexto_autenticacion("login", errores, form_data),
+        ), 401 if errores else 200
+
+    @app.route("/registro", methods=["GET", "POST"])
+    def registro():
+        siguiente = safe_next_url(request.values.get("next"))
+        if g.current_user is not None:
+            return redirect(siguiente or url_for("reserva"))
+
+        errores = []
+        form_data = {}
+        if request.method == "POST":
+            form_data = request.form.to_dict()
+            nombre = form_data.get("nombre", "").strip()
+            correo = form_data.get("correo", "").strip().casefold()
+            password = form_data.get("password", "")
+            confirmar_password = form_data.get("confirmar_password", "")
+
+            if not nombre or len(nombre) > 80:
+                errores.append("Escribe tu nombre (máximo 80 caracteres).")
+            if (
+                not correo
+                or len(correo) > 120
+                or "@" not in correo
+                or "." not in correo.split("@")[-1]
+            ):
+                errores.append("Escribe un correo electrónico válido.")
+            elif db.session.execute(
+                db.select(Usuario.id).where(Usuario.correo == correo)
+            ).scalar_one_or_none() is not None:
+                errores.append("Ya existe una cuenta con ese correo.")
+            if len(password) < 10 or len(password) > 128:
+                errores.append("La contraseña debe tener entre 10 y 128 caracteres.")
+            if password != confirmar_password:
+                errores.append("Las contraseñas no coinciden.")
+
+            if not errores:
+                usuario = Usuario(
+                    nombre=nombre,
+                    correo=correo,
+                    password_hash=generate_password_hash(password),
+                )
+                db.session.add(usuario)
+                try:
+                    db.session.commit()
+                except IntegrityError:
+                    db.session.rollback()
+                    errores.append("Ya existe una cuenta con ese correo.")
+                else:
+                    session.clear()
+                    session["usuario_id"] = usuario.id
+                    flash("Tu cuenta está lista. Bienvenido a CineFlix.", "success")
+                    return redirect(siguiente or url_for("reserva"))
+
+        return render_template(
+            "autenticacion.html",
+            **contexto_autenticacion("registro", errores, form_data),
+        ), 400 if errores else 200
+
+    @app.post("/logout")
+    def logout():
+        session.clear()
+        flash("Has cerrado sesión.", "info")
+        return redirect(url_for("login"))
+
     @app.route("/", methods=["GET", "POST"])
+    @login_required
     def reserva():
         errores = []
         form_data = {}
@@ -315,6 +462,7 @@ def create_app(test_config=None):
                 boletos=boletos,
                 sala=sala,
                 folio=secrets.token_hex(6).upper(),
+                usuario_id=g.current_user.id,
             )
             reservacion.asientos = [
                 AsientoReservado(
@@ -380,9 +528,13 @@ def create_app(test_config=None):
         )
 
     @app.get("/boleto/<string:folio>")
+    @login_required
     def boleto(folio):
         reservacion = db.session.execute(
-            db.select(Reservacion).where(Reservacion.folio == folio.upper())
+            db.select(Reservacion).where(
+                Reservacion.folio == folio.upper(),
+                Reservacion.usuario_id == g.current_user.id,
+            )
         ).scalar_one_or_none()
         if reservacion is None:
             abort(404)
@@ -395,30 +547,39 @@ def create_app(test_config=None):
         )
 
     @app.route("/reservaciones")
+    @login_required
     def listado():
         q = request.args.get("q", "").strip()
         if q:
             termino = f"%{q}%"
-            consulta = db.select(Reservacion).where(or_(
-                Reservacion.nombre.ilike(termino),
-                Reservacion.correo.ilike(termino),
-                Reservacion.pelicula.ilike(termino),
-                Reservacion.folio.ilike(termino),
-            ))
+            consulta = db.select(Reservacion).where(
+                Reservacion.usuario_id == g.current_user.id,
+                or_(
+                    Reservacion.nombre.ilike(termino),
+                    Reservacion.correo.ilike(termino),
+                    Reservacion.pelicula.ilike(termino),
+                    Reservacion.folio.ilike(termino),
+                ),
+            )
         else:
-            consulta = db.select(Reservacion)
+            consulta = db.select(Reservacion).where(
+                Reservacion.usuario_id == g.current_user.id
+            )
         reservaciones = db.session.execute(
             consulta.order_by(Reservacion.id.desc())
         ).scalars().all()
         total = db.session.scalar(
-            db.select(db.func.count()).select_from(Reservacion)
+            db.select(db.func.count()).select_from(Reservacion).where(
+                Reservacion.usuario_id == g.current_user.id
+            )
         )
         return render_template("listado.html", reservaciones=reservaciones, q=q, total=total)
 
     @app.route("/cancelar/<int:reserva_id>", methods=["POST"])
+    @login_required
     def cancelar(reserva_id):
         reservacion = db.session.get(Reservacion, reserva_id)
-        if reservacion is not None:
+        if reservacion is not None and reservacion.usuario_id == g.current_user.id:
             db.session.delete(reservacion)
             db.session.commit()
             flash("La reservación fue cancelada.", "info")
@@ -437,6 +598,13 @@ def create_app(test_config=None):
             columna["name"]
             for columna in inspect(db.engine).get_columns("reservaciones")
         }
+        if "usuario_id" not in columnas_reservaciones:
+            db.session.execute(text(
+                "ALTER TABLE reservaciones ADD COLUMN usuario_id INTEGER "
+                "REFERENCES usuarios(id) ON DELETE SET NULL"
+            ))
+            db.session.commit()
+
         if "folio" not in columnas_reservaciones:
             db.session.execute(
                 text("ALTER TABLE reservaciones ADD COLUMN folio VARCHAR(12)")
@@ -454,6 +622,10 @@ def create_app(test_config=None):
         db.session.execute(text(
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_reservaciones_folio_idx "
             "ON reservaciones (folio)"
+        ))
+        db.session.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_reservaciones_usuario_id "
+            "ON reservaciones (usuario_id)"
         ))
         db.session.commit()
 

@@ -13,12 +13,22 @@
     <div class="ambient ambient-one"></div>
     <div class="ambient ambient-two"></div>
     <header class="topbar">
-        <a class="brand" href="{{ url_for('reserva') }}"><span class="brand-mark">C</span>CINE<span>FLIX</span></a>
-        <nav>
-            <a href="{{ url_for('reserva') }}" class="{% if request.endpoint == 'reserva' %}active{% endif %}">Reservar</a>
-            <a href="{{ url_for('listado') }}" class="{% if request.endpoint == 'listado' %}active{% endif %}">Reservaciones</a>
-        </nav>
-        <span class="topbar-tag">CINEMA EXPERIENCE</span>
+        <a class="brand" href="{{ url_for('reserva') if current_user else url_for('login') }}"><span class="brand-mark">C</span>CINE<span>FLIX</span></a>
+        {% if current_user %}
+            <nav>
+                <a href="{{ url_for('reserva') }}" class="{% if request.endpoint == 'reserva' %}active{% endif %}">Reservar</a>
+                <a href="{{ url_for('listado') }}" class="{% if request.endpoint == 'listado' %}active{% endif %}">Mis reservaciones</a>
+            </nav>
+            <div class="topbar-account">
+                <span class="topbar-tag">{{ current_user.nombre }}</span>
+                <form method="POST" action="{{ url_for('logout') }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <button class="liquid-button topbar-logout" type="submit">Salir</button>
+                </form>
+            </div>
+        {% else %}
+            <span class="topbar-tag">TU HISTORIA COMIENZA AQUÍ</span>
+        {% endif %}
     </header>
 
     <main class="page-shell">
@@ -38,6 +48,8 @@
         <span>© 2026 CINEFLIX</span>
         <span>Tu próxima película comienza aquí.</span>
     </footer>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    {% if current_user %}
+        <script src="{{ url_for('static', filename='app.js') }}"></script>
+    {% endif %}
 </body>
 </html>

@@ -6,6 +6,7 @@ Aplicación web didáctica para registrar, consultar y cancelar reservaciones de
 
 - Formulario de reservación con nombre, correo, película, fecha, horario, boletos y sala.
 - Búsqueda por película y género, lista de favoritas guardada en el navegador y detalles con acceso a tráilers.
+- Registro e inicio de sesión con contraseñas protegidas mediante hash; las reservaciones y boletos son privados por cuenta.
 - Selección de asientos por función con disponibilidad compartida y bloqueo de lugares ya reservados.
 - Boleto imprimible con folio único y asientos asignados.
 - Validación de datos en el servidor.
@@ -58,11 +59,14 @@ python app.py
 
 Abre en el navegador:
 
-- Formulario: http://127.0.0.1:5002/
-- Reservaciones: http://127.0.0.1:5002/reservaciones
+- Inicio de sesión: http://127.0.0.1:5002/login
+- Crear cuenta: http://127.0.0.1:5002/registro
+- Cartelera y reservaciones (después de iniciar sesión): http://127.0.0.1:5002/
+- Mis reservaciones (después de iniciar sesión): http://127.0.0.1:5002/reservaciones
 - Estado: http://127.0.0.1:5002/salud
 
 Si no defines `DATABASE_URL`, la base local `cineflix.db` se crea automáticamente junto a `app.py`.
+Las reservaciones anteriores a las cuentas se conservan en la base de datos, pero no se asignan automáticamente a usuarios.
 
 ## Desplegar en Render con Neon
 
@@ -85,8 +89,10 @@ CineFlix/
 ├── .gitignore
 ├── templates/
 │   ├── base.html
+│   ├── autenticacion.html
 │   ├── reserva.html
-│   └── listado.html
+│   ├── listado.html
+│   └── boleto.html
 └── static/
     ├── estilos.css
     ├── cartelera.css
@@ -99,13 +105,14 @@ CineFlix/
 1. Registra una reservación con todos los datos válidos.
 2. Comprueba que aparezca el mensaje de éxito.
 3. Entra a `/reservaciones` y verifica que aparezca el registro.
-4. Busca por nombre, correo o película.
-5. Intenta enviar un formulario con datos incorrectos.
-6. Cancela una reservación y comprueba que desaparezca.
-7. Elige película, fecha, horario y sala; verifica que el mapa cargue y selecciona un asiento por boleto.
-8. Confirma la reserva, imprime el boleto y comprueba su folio en `/reservaciones`.
-9. Abre otra sesión y confirma que los asientos ocupados ya no se puedan seleccionar.
-10. Detén el servidor y vuelve a iniciarlo; las reservaciones deben permanecer.
+4. Crea una cuenta, cierra sesión e inicia sesión de nuevo.
+5. Comprueba que cada cuenta solo pueda consultar y cancelar sus propias reservaciones.
+6. Intenta enviar un formulario con datos incorrectos.
+7. Cancela una reservación y comprueba que desaparezca.
+8. Elige película, fecha, horario y sala; verifica que el mapa cargue y selecciona un asiento por boleto.
+9. Confirma la reserva, imprime el boleto y comprueba su folio en `/reservaciones`.
+10. Abre otra sesión y confirma que los asientos ocupados ya no se puedan seleccionar.
+11. Detén el servidor y vuelve a iniciarlo; las reservaciones deben permanecer.
 
 ## Conceptos importantes para explicar
 
@@ -122,4 +129,4 @@ CineFlix/
 
 ## Alcance y seguridad
 
-Este proyecto no comprueba asientos disponibles, no procesa pagos ni emite boletos reales. El acceso a reservaciones y su cancelación no incluye autenticación; añade controles de acceso antes de usarlo con datos reales. El token CSRF incluido es una protección didáctica básica, no sustituye una auditoría de seguridad.
+Este proyecto no procesa pagos ni emite boletos reales. Las cuentas protegen las reservaciones por usuario, pero no incluyen recuperación de contraseña ni verificación de correo. El token CSRF incluido es una protección didáctica básica, no sustituye una auditoría de seguridad.

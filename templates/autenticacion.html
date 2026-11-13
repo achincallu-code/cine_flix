@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ "Iniciar sesión" if modo == "login" else "Crear cuenta" }} | CineFlix{% endblock %}
+{% block content %}
+<section class="auth-page auth-{{ modo }}">
+    <div class="auth-story">
+        <p class="eyebrow"><span class="live-dot"></span> CINEFLIX ORIGINAL</p>
+        <h1>Las mejores historias <span>se viven en pantalla grande.</span></h1>
+        <p class="auth-intro">Prepara tu próxima salida al cine. Encuentra tu película, elige tus asientos y guarda tus boletos en un solo lugar.</p>
+        <div class="auth-poster-row" aria-label="Películas destacadas">
+            {% for pelicula in peliculas_destacadas %}
+            <div class="auth-poster">
+                <img src="{{ pelicula.poster }}" alt="Póster de {{ pelicula.titulo }}" {% if not loop.first %}loading="lazy"{% endif %}>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="auth-story-footer"><span>UNA NUEVA FUNCIÓN TE ESPERA</span><span>IMAGEN · SONIDO · HISTORIA</span></div>
+    </div>
+
+    <div class="auth-panel">
+        <div class="auth-heading">
+            <span class="auth-mark" aria-hidden="true">C</span>
+            <p class="eyebrow">{{ "BIENVENIDO DE VUELTA" if modo == "login" else "ÚNETE A CINEFLIX" }}</p>
+            <h2>{{ "Qué bueno verte." if modo == "login" else "Tu historia comienza aquí." }}</h2>
+            <p>{{ "Inicia sesión para continuar con tu noche de cine." if modo == "login" else "Crea tu cuenta para guardar tus reservaciones y boletos." }}</p>
+        </div>
+
+        {% if errores %}
+        <div class="auth-errors" role="alert">
+            {% for error in errores %}<p>{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <form class="auth-form" method="POST" action="{{ url_for('login' if modo == 'login' else 'registro') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            {% if siguiente %}<input type="hidden" name="next" value="{{ siguiente }}">{% endif %}
+            {% if modo == "registro" %}
+            <div class="field">
+                <label for="nombre">Nombre</label>
+                <input id="nombre" type="text" name="nombre" maxlength="80" placeholder="¿Cómo te llamas?" value="{{ form_data.get('nombre', '') }}" autocomplete="name" required>
+            </div>
+            {% endif %}
+            <div class="field">
+                <label for="correo">Correo electrónico</label>
+                <input id="correo" type="email" name="correo" maxlength="120" placeholder="nombre@correo.com" value="{{ form_data.get('correo', '') }}" autocomplete="email" required>
+            </div>
+            <div class="field">
+                <label for="password">Contraseña</label>
+                <input id="password" type="password" name="password" minlength="10" maxlength="128" placeholder="{% if modo == 'registro' %}Al menos 10 caracteres{% else %}Tu contraseña{% endif %}" autocomplete="{{ 'new-password' if modo == 'registro' else 'current-password' }}" required>
+                {% if modo == "registro" %}<small>Usa entre 10 y 128 caracteres.</small>{% endif %}
+            </div>
+            {% if modo == "registro" %}
+            <div class="field">
+                <label for="confirmar-password">Confirma tu contraseña</label>
+                <input id="confirmar-password" type="password" name="confirmar_password" minlength="10" maxlength="128" placeholder="Escríbela de nuevo" autocomplete="new-password" required>
+            </div>
+            {% endif %}
+            <button class="liquid-button liquid-button-primary" type="submit">
+                <span>{{ "Iniciar sesión" if modo == "login" else "Crear mi cuenta" }}</span>
+                <span class="liquid-arrow" aria-hidden="true">→</span>
+            </button>
+        </form>
+
+        <div class="auth-switch">
+            {% if modo == "login" %}
+            <span>¿Primera vez por aquí?</span>
+            <a class="liquid-button liquid-button-secondary" href="{{ url_for('registro', next=siguiente) if siguiente else url_for('registro') }}">Crear cuenta</a>
+            {% else %}
+            <span>¿Ya tienes una cuenta?</span>
+            <a class="liquid-button liquid-button-secondary" href="{{ url_for('login', next=siguiente) if siguiente else url_for('login') }}">Iniciar sesión</a>
+            {% endif %}
+        </div>
+        <p class="auth-privacy">Tus datos y reservaciones solo son visibles para ti.</p>
+    </div>
+</section>
+{% endblock %}

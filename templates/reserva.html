@@ -88,11 +88,11 @@
         <div class="form-grid">
             <div class="field">
                 <label for="nombre">Nombre</label>
-                <input id="nombre" type="text" name="nombre" maxlength="80" placeholder="Nombre del cliente" value="{{ form_data.get('nombre', '') }}" autocomplete="name" required>
+                <input id="nombre" type="text" name="nombre" maxlength="80" placeholder="Nombre del cliente" value="{{ form_data.get('nombre', current_user.nombre) }}" autocomplete="name" required>
             </div>
             <div class="field">
                 <label for="correo">Correo electrónico</label>
-                <input id="correo" type="email" name="correo" maxlength="120" placeholder="nombre@correo.com" value="{{ form_data.get('correo', '') }}" autocomplete="email" required>
+                <input id="correo" type="email" name="correo" maxlength="120" placeholder="nombre@correo.com" value="{{ form_data.get('correo', current_user.correo) }}" autocomplete="email" required>
             </div>
             <div class="field full">
                 <label for="pelicula">Película seleccionada</label>

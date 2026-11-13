@@ -2,17 +2,17 @@
 {% block title %}Reservaciones | CineFlix{% endblock %}
 {% block content %}
 <section class="list-hero">
-    <div><p class="eyebrow">PANEL DE CONTROL</p><h1>Tus reservaciones<span>.</span></h1><p>Consulta y administra los registros guardados en CineFlix.</p></div>
+    <div><p class="eyebrow">TU ESPACIO CINEFLIX</p><h1>Tus reservaciones<span>.</span></h1><p>Consulta y administra tus próximas funciones.</p></div>
     <a class="btn-primary compact" href="{{ url_for('reserva') }}">＋ Nueva reservación</a>
 </section>
 
 <div class="stats-row">
-    <div class="stat-card"><span class="stat-icon">01</span><div><small>REGISTROS TOTALES</small><strong>{{ total }}</strong></div></div>
+    <div class="stat-card"><span class="stat-icon">01</span><div><small>TUS RESERVACIONES</small><strong>{{ total }}</strong></div></div>
     <div class="stat-card"><span class="stat-icon red">02</span><div><small>RESULTADOS MOSTRADOS</small><strong>{{ reservaciones|length }}</strong></div></div>
 </div>
 
 <form class="search-bar" method="GET" action="{{ url_for('listado') }}">
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por cliente, correo, película o folio...">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por película o folio...">
     <button type="submit">Buscar</button>
     {% if q %}<a href="{{ url_for('listado') }}" class="clear-search">Limpiar</a>{% endif %}
 </form>
